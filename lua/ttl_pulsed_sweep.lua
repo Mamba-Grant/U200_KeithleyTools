@@ -1,41 +1,48 @@
+-- Bug: does not terminate right
+
 loadscript TTLPulsedSweep
     smua.reset()
     smua.nvbuffer1.clear()
-    smua.nvbuffer1.appendmode = 1 -- don't overwite buffer!
+    smua.nvbuffer1.appendmode = 1
+    smua.source.func = smua.OUTPUT_DCAMPS -- I'll never forgive anyone who forgets to set their output mode
 
     local min = 0.5e-3
     local max = 1e-3
-    local steps = 100
-    local duration = 3 
+    local steps = 1000
+    local duration = 30
+    local compliance_v = 10.0  -- evil
 
     local period = duration / steps
+    local num_points = steps + 1 
 
-    smua.trigger.source.lineari(min, max, points)
+    smua.trigger.source.lineari(min, max, num_points)
+    smua.trigger.source.limitv = compliance_v
     smua.trigger.source.action = smua.ENABLE
 
-    -- make the steps sequential
     trigger.timer[1].delay = period 
-    trigger.timer[1].count = steps-1
+    trigger.timer[1].count = num_points - 1 
     trigger.timer[1].stimulus = smua.trigger.ARMED_EVENT_ID
-
-    -- step after each timer trigger
     smua.trigger.source.stimulus = trigger.timer[1].EVENT_ID
 
-    -- define measurement trigger
     smua.trigger.measure.action = smua.ENABLE 
     smua.trigger.measure.v(smua.nvbuffer1)
     smua.trigger.measure.stimulus = smua.trigger.SOURCE_COMPLETE_EVENT_ID
+    
     smua.trigger.arm.count = 1
-    smua.trigger.count = points
+    smua.trigger.count = num_points
 
-    -- ttl signal
-    digio.trigger[1].mode = digio.TRIG_EITHER
+    -- TODO: pass 1011 to get a error-correctable edge
+    digio.trigger[1].clear()
+    digio.trigger[1].mode = digio.TRIG_FALLING -- or TRIG_RISING
     digio.trigger[1].pulsewidth = 0.001
-    digio.trigger[1].stimulus = smua.trigger.MEASURE_COMPLETE_EVENT_ID -- pulse fired following each step
+    digio.trigger[1].stimulus = smua.trigger.MEASURE_COMPLETE_EVENT_ID 
 
-    -- exec
-    smua.source.output = smua.OUTPUT_ON
+    smua.source.output = smua.OUTPUT_ON -- OUTPUT_ON my beloved
+
     smua.trigger.initiate()
     waitcomplete()
+
     smua.source.output = smua.OUTPUT_OFF
+    
+    print("SWEEP_DONE")
 endscript
