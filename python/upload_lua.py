@@ -34,7 +34,6 @@ if "0" not in err_check.split("\t")[0] and "0" not in err_check.split(",")[0]:
 print("Exec")
 keithley.write("TTLPulsedSweep()")
 
-# Block safely on the instrument execution loop
 response = ""
 while "SWEEP_DONE" not in response:
     try:
@@ -45,10 +44,9 @@ while "SWEEP_DONE" not in response:
         # Prevents Python host from crashing while waiting for a long 3s sweep
         time.sleep(0.1)
 
-# # Safely extract your data array back to host memory
-# print("Retrieving measurement data...")
-# data = keithley.query("printbuffer(1, smua.nvbuffer1.n, smua.nvbuffer1)")
-# points = [float(val) for val in data.split(",") if val.strip()]
-# print(f"Retrieved {len(points)} points.")
+print("Retrieving measurement data...")
+data = keithley.query("printbuffer(1, smua.nvbuffer1.n, smua.nvbuffer1)")
+points = [float(val) for val in data.split(",") if val.strip()]
+print(f"Retrieved {len(points)} points.")
 
 keithley.close()
