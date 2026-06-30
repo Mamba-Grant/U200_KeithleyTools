@@ -10,23 +10,25 @@ loadscript TTLPulsedSweep
     local duration = 3
     local compliance_v = 10.0  -- evil
     local period = duration / steps
-    local num_points = steps + 1 
+    local num_points = steps
 
     smua.trigger.source.lineari(min, max, num_points)
     smua.trigger.source.limitv = compliance_v
     smua.trigger.source.action = smua.ENABLE
 
-    trigger.timer[1].delay = period 
-    trigger.timer[1].count = num_points
-    trigger.timer[1].stimulus = smua.trigger.ARMED_EVENT_ID
+    local period_timer = trigger.timer[1]
+    period_timer.delay = period 
+    period_timer.passthrough = true
+    period_timer.count = num_points + 5
+    period_timer.stimulus = smua.trigger.ARMED_EVENT_ID
 
-    smua.trigger.source.stimulus = trigger.timer[1].SOURCE_COMPLETE_EVENT_ID -- trigger measurement after set current
+    smua.trigger.source.stimulus = period_timer.EVENT_ID -- trigger measurement after set current
     smua.trigger.measure.action = smua.ENABLE 
     smua.trigger.measure.v(smua.nvbuffer1)
     smua.trigger.measure.stimulus = smua.trigger.SOURCE_COMPLETE_EVENT_ID
     
     smua.trigger.arm.count = 1
-    smua.trigger.count = num_points-1
+    smua.trigger.count = num_points
 
     -- TODO: pass 1011 to get a error-correctable edge
     digio.trigger[1].clear()

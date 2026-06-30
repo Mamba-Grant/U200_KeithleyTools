@@ -1,11 +1,11 @@
-# Bug: does not terminate right
-
 from typing import cast
 import pyvisa
 import time
 from pyvisa.resources import TCPIPInstrument
+import matplotlib.pyplot as plt
+import numpy as np
 
-file = "../lua/ttl_pulsed_sweep.lua"
+file = "../lua/ttl_pulsed_sweep_bidirectional.lua"
 
 rm = pyvisa.ResourceManager()
 keithley: TCPIPInstrument = cast(TCPIPInstrument, rm.open_resource("TCPIP0::192.168.1.129::INSTR"))
@@ -32,7 +32,7 @@ if "0" not in err_check.split("\t")[0] and "0" not in err_check.split(",")[0]:
     exit()
 
 print("Exec")
-keithley.write("TTLPulsedSweep()")
+keithley.write("TTLPulsedSweepBD()")
 
 response = ""
 while "SWEEP_DONE" not in response:
@@ -41,12 +41,16 @@ while "SWEEP_DONE" not in response:
         if response and "SWEEP_DONE" not in response:
             print(f"[Keithley]: {response}")
     except pyvisa.VisaIOError:
-        # Prevents Python host from crashing while waiting for a long 3s sweep
         time.sleep(0.1)
 
-print("Retrieving measurement data...")
-data = keithley.query("printbuffer(1, smua.nvbuffer1.n, smua.nvbuffer1)")
-points = [float(val) for val in data.split(",") if val.strip()]
-print(f"Retrieved {len(points)} points.")
-
+# Current setpoints are read only
+voltages = keithley.query("printbuffer(1, smua.nvbuffer1.n, smua.nvbuffer1)")
 keithley.close()
+
+points = np.array([float(val) for val in voltages.split(",") if val.strip()])
+
+plt.plot(np.linspace(0, 1, len(points)), points, )
+plt.ylabel("Voltage (V)")
+plt.xlabel("Time (a.u.)")
+plt.show()
+
